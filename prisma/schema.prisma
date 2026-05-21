@@ -1,0 +1,457 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── AUTH & USERS ────────────────────────────────────────────────────────────
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime?
+  image          String?
+  passwordHash   String?
+  role           Role      @default(STUDENT)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Gamification
+  xp             Int       @default(0)
+  level          Int       @default(1)
+  prestige       Int       @default(0)
+  coins          Int       @default(0)
+  gems           Int       @default(0)
+  streak         Int       @default(0)
+  longestStreak  Int       @default(0)
+  lastActiveAt   DateTime  @default(now())
+  eloRating      Int       @default(1000)
+  title          String?
+
+  // Relations
+  accounts         Account[]
+  sessions         Session[]
+  submissions      Submission[]
+  achievements     UserAchievement[]
+  aiHistory        AIHistory[]
+  aiMemory         AIMemory[]
+  skillNodes       UserSkillNode[]
+  battlePassProgress BattlePassProgress[]
+  notifications    Notification[]
+  analyticsEvents  AnalyticsEvent[]
+  dailyRewards     DailyReward[]
+  clanMembership   ClanMember?
+  matchParticipants MatchParticipant[]
+  auditLogs        AuditLog[]
+
+  @@index([xp(sort: Desc)])
+  @@index([eloRating(sort: Desc)])
+}
+
+enum Role {
+  STUDENT
+  MODERATOR
+  ADMIN
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+// ─── QUESTS & WORLDS ─────────────────────────────────────────────────────────
+
+model Quest {
+  id          String       @id @default(cuid())
+  title       String
+  description String
+  language    Language
+  difficulty  Difficulty
+  xpReward    Int
+  coinReward  Int          @default(0)
+  gemReward   Int          @default(0)
+  order       Int
+  worldId     String
+  timeLimit   Int?         // seconds, null = no limit
+  isBoss      Boolean      @default(false)
+
+  starterCode String
+  solution    String
+  testCases   Json
+  hints       Json         @default("[]")
+
+  createdAt   DateTime     @default(now())
+  world       World        @relation(fields: [worldId], references: [id])
+  submissions Submission[]
+
+  @@index([worldId, order])
+}
+
+model World {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  language    Language
+  order       Int
+  unlockLevel Int      @default(1)
+  imageUrl    String?
+  theme       String   @default("default")
+  quests      Quest[]
+  @@index([order])
+}
+
+enum Language {
+  PYTHON
+  JAVASCRIPT
+  HTML_CSS
+  C
+  CPP
+  JAVA
+  REACT
+}
+
+enum Difficulty {
+  BEGINNER
+  EASY
+  MEDIUM
+  HARD
+  BOSS
+}
+
+// ─── SUBMISSIONS ─────────────────────────────────────────────────────────────
+
+model Submission {
+  id        String           @id @default(cuid())
+  userId    String
+  questId   String
+  code      String
+  status    SubmissionStatus
+  xpEarned  Int              @default(0)
+  timeTaken Int?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest     Quest            @relation(fields: [questId], references: [id])
+  @@index([userId, questId])
+  @@index([userId, status])
+}
+
+enum SubmissionStatus {
+  PASSED
+  FAILED
+  ERROR
+  TIMEOUT
+}
+
+// ─── ACHIEVEMENTS ────────────────────────────────────────────────────────────
+
+model Achievement {
+  id          String            @id @default(cuid())
+  name        String            @unique
+  description String
+  icon        String
+  xpReward    Int
+  rarity      Rarity            @default(COMMON)
+  condition   Json
+  users       UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  @@unique([userId, achievementId])
+}
+
+enum Rarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+// ─── SKILL TREE ──────────────────────────────────────────────────────────────
+
+model SkillNode {
+  id           String         @id @default(cuid())
+  name         String
+  description  String
+  icon         String
+  category     String
+  tier         Int
+  xpCost       Int
+  prerequisiteIds String[]
+  bonusType    String         // "xp_multiplier", "hint_unlock", "time_bonus"
+  bonusValue   Float
+  users        UserSkillNode[]
+}
+
+model UserSkillNode {
+  id          String    @id @default(cuid())
+  userId      String
+  skillNodeId String
+  unlockedAt  DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillNode   SkillNode @relation(fields: [skillNodeId], references: [id])
+  @@unique([userId, skillNodeId])
+}
+
+// ─── BATTLE PASS ─────────────────────────────────────────────────────────────
+
+model BattlePass {
+  id        String   @id @default(cuid())
+  season    Int      @unique
+  name      String
+  startsAt  DateTime
+  endsAt    DateTime
+  tiers     BattlePassTier[]
+  progress  BattlePassProgress[]
+}
+
+model BattlePassTier {
+  id           String     @id @default(cuid())
+  battlePassId String
+  tier         Int
+  xpRequired   Int
+  rewardType   String     // "coins", "gems", "title", "badge", "xp_boost"
+  rewardValue  String
+  isPremium    Boolean    @default(false)
+  battlePass   BattlePass @relation(fields: [battlePassId], references: [id])
+  @@unique([battlePassId, tier])
+}
+
+model BattlePassProgress {
+  id           String     @id @default(cuid())
+  userId       String
+  battlePassId String
+  currentXp    Int        @default(0)
+  currentTier  Int        @default(0)
+  isPremium    Boolean    @default(false)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  battlePass   BattlePass @relation(fields: [battlePassId], references: [id])
+  @@unique([userId, battlePassId])
+}
+
+// ─── CLANS ───────────────────────────────────────────────────────────────────
+
+model Clan {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  tag         String       @unique
+  description String?
+  emblem      String?
+  level       Int          @default(1)
+  totalXp     Int          @default(0)
+  maxMembers  Int          @default(30)
+  createdAt   DateTime     @default(now())
+  members     ClanMember[]
+}
+
+model ClanMember {
+  id       String   @id @default(cuid())
+  userId   String   @unique
+  clanId   String
+  role     ClanRole @default(MEMBER)
+  joinedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clan     Clan     @relation(fields: [clanId], references: [id], onDelete: Cascade)
+}
+
+enum ClanRole {
+  LEADER
+  OFFICER
+  MEMBER
+}
+
+// ─── TOURNAMENTS & MULTIPLAYER ───────────────────────────────────────────────
+
+model Tournament {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  type        TournamentType
+  status      TournamentStatus  @default(UPCOMING)
+  startsAt    DateTime
+  endsAt      DateTime
+  maxPlayers  Int
+  entryFee    Int               @default(0)
+  prizePool   Json?
+  matches     Match[]
+  createdAt   DateTime          @default(now())
+}
+
+enum TournamentType {
+  BRACKET
+  ROUND_ROBIN
+  SURVIVAL
+}
+
+enum TournamentStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+}
+
+model Match {
+  id           String             @id @default(cuid())
+  tournamentId String?
+  type         MatchType
+  status       MatchStatus        @default(WAITING)
+  questId      String?
+  startedAt    DateTime?
+  endedAt      DateTime?
+  createdAt    DateTime           @default(now())
+  tournament   Tournament?        @relation(fields: [tournamentId], references: [id])
+  participants MatchParticipant[]
+}
+
+enum MatchType {
+  DUEL
+  TOURNAMENT_ROUND
+  SURVIVAL
+}
+
+enum MatchStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model MatchParticipant {
+  id        String  @id @default(cuid())
+  matchId   String
+  userId    String
+  code      String?
+  score     Int     @default(0)
+  timeTaken Int?
+  isWinner  Boolean @default(false)
+  match     Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([matchId, userId])
+}
+
+// ─── AI SYSTEM ───────────────────────────────────────────────────────────────
+
+model AIHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  questId   String?
+  prompt    String
+  response  String
+  type      AIType
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model AIMemory {
+  id         String   @id @default(cuid())
+  userId     String
+  concept    String
+  strength   Float    @default(0.5) // 0-1, how well they know it
+  mistakes   Int      @default(0)
+  successes  Int      @default(0)
+  lastSeen   DateTime @default(now())
+  embedding  Float[]  // vector for semantic search
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, concept])
+  @@index([userId, strength])
+}
+
+enum AIType {
+  HINT
+  BUG_EXPLANATION
+  CODE_REVIEW
+  RECOMMENDATION
+  ADAPTIVE_QUEST
+}
+
+// ─── NOTIFICATIONS ───────────────────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String
+  read      Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, read, createdAt(sort: Desc)])
+}
+
+// ─── DAILY REWARDS ───────────────────────────────────────────────────────────
+
+model DailyReward {
+  id        String   @id @default(cuid())
+  userId    String
+  day       Int
+  claimed   Boolean  @default(false)
+  claimedAt DateTime?
+  reward    Json
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, day])
+}
+
+// ─── ANALYTICS ───────────────────────────────────────────────────────────────
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  event     String
+  data      Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([event, createdAt])
+  @@index([userId, event])
+}
+
+// ─── SECURITY ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  resource  String
+  details   Json?
+  ip        String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+}

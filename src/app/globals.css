@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+
+@layer base {
+  :root {
+    --glow-primary: 108 99 255;
+    --glow-accent: 0 245 212;
+  }
+  body {
+    @apply bg-surface-dark text-white antialiased overflow-x-hidden;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-surface-dark; }
+  ::-webkit-scrollbar-thumb { @apply bg-primary/40 rounded-full; }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl;
+  }
+  .glass-strong {
+    @apply bg-white/[0.06] backdrop-blur-2xl border border-white/[0.12] rounded-2xl;
+  }
+  .card-cyber {
+    @apply glass p-6 transition-all duration-500 hover:border-primary/40 hover:shadow-[0_0_40px_rgba(108,99,255,0.12)] relative overflow-hidden;
+  }
+  .card-cyber::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-500;
+  }
+  .card-cyber:hover::before { @apply opacity-100; }
+  .btn-cyber {
+    @apply relative bg-primary hover:bg-primary-dark text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_30px_rgba(108,99,255,0.4)];
+  }
+  .btn-neon {
+    @apply relative bg-transparent border-2 border-accent text-accent font-semibold px-6 py-3 rounded-xl transition-all duration-300 hover:bg-accent/10 hover:shadow-[0_0_30px_rgba(0,245,212,0.3)] active:scale-95;
+  }
+  .text-glow {
+    text-shadow: 0 0 10px rgba(108, 99, 255, 0.5), 0 0 40px rgba(108, 99, 255, 0.2);
+  }
+  .text-glow-accent {
+    text-shadow: 0 0 10px rgba(0, 245, 212, 0.5), 0 0 40px rgba(0, 245, 212, 0.2);
+  }
+  .neon-border {
+    @apply border border-primary/30 shadow-[inset_0_0_20px_rgba(108,99,255,0.05),0_0_20px_rgba(108,99,255,0.1)];
+  }
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary via-neon-purple to-accent bg-clip-text text-transparent;
+  }
+  .shimmer-bg {
+    @apply bg-[length:200%_100%] animate-shimmer bg-gradient-to-r from-transparent via-white/5 to-transparent;
+  }
+}

@@ -1,0 +1,112 @@
+services:
+  # ─── Next.js App ──────────────────────────────────────────────────────────────
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/codequest
+      - AUTH_SECRET=${AUTH_SECRET:-change-me-in-production}
+      - AUTH_URL=http://localhost:3000
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=deepseek-coder:6.7b
+      - REDIS_URL=redis://redis:6379
+      - WS_PORT=3001
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── WebSocket Server ─────────────────────────────────────────────────────────
+  ws:
+    build: .
+    command: ["node", "-e", "require('./src/server/ws.ts')"]
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/codequest
+      - AUTH_URL=http://localhost:3000
+      - WS_PORT=3001
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── PostgreSQL ───────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: codequest
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── Ollama AI ────────────────────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  # ─── NGINX Reverse Proxy ──────────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+      - ws
+    restart: unless-stopped
+
+  # ─── Judge0 Code Execution ────────────────────────────────────────────────────
+  judge0:
+    image: judge0/judge0-ce:1.13.1
+    ports:
+      - "2358:2358"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=judge0
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  ollama_data:
