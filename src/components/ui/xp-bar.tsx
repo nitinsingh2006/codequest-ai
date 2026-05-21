@@ -27,7 +27,7 @@ export function AnimatedXPBar({ current, max, level, className }: XPBarProps) {
           transition={{ duration: 1.2, ease: "easeOut" }}
         />
         {/* Shimmer overlay */}
-        <div className="absolute inset-0 shimmer-bg rounded-full" />
+        <div className="absolute inset-0 shimmer-bg rounded-full pointer-events-none" />
       </div>
     </div>
   );

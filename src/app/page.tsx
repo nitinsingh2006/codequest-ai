@@ -9,9 +9,9 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
       {/* Animated background layers */}
-      <div className="absolute inset-0 bg-cyber-grid bg-[size:50px_50px] opacity-20" />
-      <div className="absolute inset-0 bg-gradient-radial from-primary/8 via-transparent to-transparent" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-radial from-accent/5 to-transparent rounded-full blur-3xl" />
+      <div className="absolute inset-0 bg-cyber-grid bg-[size:50px_50px] opacity-20 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-radial from-primary/8 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-radial from-accent/5 to-transparent rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-4xl space-y-8 relative z-10">
         {/* Logo */}

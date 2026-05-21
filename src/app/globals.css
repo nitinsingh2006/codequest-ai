@@ -29,7 +29,7 @@
   }
   .card-cyber::before {
     content: '';
-    @apply absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-500;
+    @apply absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-500 pointer-events-none;
   }
   .card-cyber:hover::before { @apply opacity-100; }
   .btn-cyber {

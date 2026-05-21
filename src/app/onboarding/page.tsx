@@ -39,8 +39,8 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-cyber-grid bg-[size:50px_50px] opacity-20" />
-      <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-cyber-grid bg-[size:50px_50px] opacity-20 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent pointer-events-none" />
 
       <motion.div className="w-full max-w-lg relative z-10" layout>
         {/* Progress */}

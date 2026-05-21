@@ -66,8 +66,8 @@ function FloatingOrbs() {
 
 export function ParticleBackground() {
   return (
-    <div className="fixed inset-0 -z-10">
-      <Canvas camera={{ position: [0, 0, 5], fov: 60 }} dpr={[1, 1.5]} gl={{ antialias: false, alpha: true }}>
+    <div className="fixed inset-0 -z-10 pointer-events-none">
+      <Canvas camera={{ position: [0, 0, 5], fov: 60 }} dpr={[1, 1.5]} gl={{ antialias: false, alpha: true }} style={{ pointerEvents: "none" }}>
         <Particles />
         <FloatingOrbs />
       </Canvas>

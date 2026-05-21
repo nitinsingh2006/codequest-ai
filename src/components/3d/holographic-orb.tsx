@@ -52,8 +52,8 @@ function HoloRing({ radius = 1.5, color = "#00F5D4" }) {
 
 export function HolographicOrb({ className = "" }: { className?: string }) {
   return (
-    <div className={`w-full h-full ${className}`}>
-      <Canvas camera={{ position: [0, 0, 4], fov: 45 }} dpr={[1, 1.5]} gl={{ antialias: false, alpha: true }}>
+    <div className={`w-full h-full pointer-events-none ${className}`}>
+      <Canvas camera={{ position: [0, 0, 4], fov: 45 }} dpr={[1, 1.5]} gl={{ antialias: false, alpha: true }} style={{ pointerEvents: "none" }}>
         <ambientLight intensity={0.2} />
         <pointLight position={[5, 5, 5]} intensity={0.5} color="#6C63FF" />
         <HoloSphere />
